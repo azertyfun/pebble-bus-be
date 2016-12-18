@@ -1,0 +1,47 @@
+{
+  "author": "Azertyfun",
+  "dependencies": {
+    "@smallstoneapps/bitmap-loader": "^1.3.0",
+    "@smallstoneapps/scroll-text-layer": "^1.3.0"
+  },
+  "keywords": [],
+  "name": "bus-belgium",
+  "pebble": {
+    "capabilities": [
+      "location"
+    ],
+    "displayName": "Bus Belgium",
+    "enableMultiJS": true,
+    "messageKeys": {
+      "MESSAGE": 0,
+      "ADD_STOP": 1,
+      "ADD_STOP_LINE": 2,
+      "ADD_STOP_NEXT": 3,
+      "ADD_STOP_SECOND_NEXT": 4
+    },
+    "projectType": "native",
+    "resources": {
+      "media": [
+        {
+            "file": "images/icon.png",
+            "menuIcon": true,
+            "name": "ICON",
+            "type": "png"
+        }
+      ]
+    },
+    "sdkVersion": "3",
+    "targetPlatforms": [
+      "aplite",
+      "basalt",
+      "chalk",
+      "diorite",
+      "emery"
+    ],
+    "uuid": "1e9a4732-184e-4eb1-a17e-c4dd04e1f6a6",
+    "watchapp": {
+      "watchface": false
+    }
+  },
+  "version": "1.0.0"
+}
