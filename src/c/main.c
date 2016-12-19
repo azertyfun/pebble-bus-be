@@ -20,7 +20,7 @@ typedef struct {
     time_t second_next_bus;
 } Bus_stop;
 
-static bool began = false;
+static bool began = false, geoloc_done = false, data_received = false;
 static unsigned int n_bus_stops = 0;
 static Bus_stop **bus_stops = NULL;
 
@@ -70,7 +70,11 @@ static void menu_draw_row_callback (GContext *ctx, const Layer *cell_layer, Menu
         case 0:
             if (!began) {
                 menu_cell_basic_draw (ctx, cell_layer, "Loading",
-                                      "Waiting for data from the phone...", NULL);
+                                      "Waiting for BT connection...", NULL);
+            } else if (!geoloc_done) {
+                menu_cell_basic_draw (ctx, cell_layer, "Loading", "Waiting for localization from the phone...", NULL);
+            } else if (!data_received) {
+                menu_cell_basic_draw (ctx, cell_layer, "Loading", "Waiting for data...", NULL);
             } else if (cell_index->row == 0 && n_bus_stops == 0) {
                 menu_cell_basic_draw (ctx, cell_layer, "None", "No bus stops nearby",
                                       NULL);
@@ -196,6 +200,12 @@ static void inbox_received_callback (DictionaryIterator *iterator,
                     app_message_outbox_send ();
 
                     began = true;
+                    menu_layer_reload_data (s_menu_layer);
+                } else if (strcmp (tuple->value->cstring, "GEOLOC_DONE") == 0) {
+                    geoloc_done = true;
+                    menu_layer_reload_data (s_menu_layer);
+                } else if (strcmp (tuple->value->cstring, "DATA_RECEIVED") == 0) {
+                    data_received = true;
                     menu_layer_reload_data (s_menu_layer);
                 } else {
                     APP_LOG (APP_LOG_LEVEL_DEBUG, "Error: received unknown message key '%s'",

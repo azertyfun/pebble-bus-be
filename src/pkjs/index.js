@@ -18,6 +18,7 @@ Pebble.addEventListener('appmessage', function(e) {
 
         var request = new XMLHttpRequest();
         request.onload = function() {
+
             var text = this.responseText;
             var r = /\\u([\d\w]{4})/gi;
             text = text.replace(r, function (match, grp) {
@@ -25,10 +26,8 @@ Pebble.addEventListener('appmessage', function(e) {
             });
             text = unescape(text);
 
-
             try {
                 var json = JSON.parse(text);
-
 
                 // Compute distance from user for each stop
                 var R = 6371e3;
@@ -53,6 +52,10 @@ Pebble.addEventListener('appmessage', function(e) {
                     return a['stop_point']['distance'] - b['stop_point']['distance'];
                 });
 
+
+                send({
+                    "MESSAGE": "DATA_RECEIVED"
+                });
 
                 stops.forEach(function(stop) {
                     var n_next_busses = stop['date_times'].length;
@@ -85,6 +88,10 @@ Pebble.addEventListener('appmessage', function(e) {
         };
 
         navigator.geolocation.getCurrentPosition(function(pos) {
+            send({
+                "MESSAGE": "GEOLOC_DONE"
+            });
+
             coords = pos.coords;
             request.open('GET', 'https://api.navitia.io/v1/coverage/be/coords/' + pos.coords.longitude + ';' + pos.coords.latitude + '/stop_schedules');
             request.setRequestHeader('Authorization', '54bf9618-c15a-4c8c-be68-f451b9b8b969');
