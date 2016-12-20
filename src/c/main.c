@@ -1,30 +1,11 @@
-#include <@smallstoneapps/scroll-text-layer/scroll-text-layer.h>
-#include <pebble.h>
+#include "main.h"
 
-#define NUM_MENU_SECTIONS 1
-
-#define MESSAGE_KEY_MESSAGE 0
-#define MESSAGE_KEY_ADD_STOP 1
-#define MESSAGE_KEY_ADD_STOP_LINE 2
-#define MESSAGE_KEY_ADD_STOP_NEXT 3
-#define MESSAGE_KEY_ADD_STOP_SECOND_NEXT 4
-
-static Window *s_window, *s_window_time;
-static MenuLayer *s_menu_layer;
-static ScrollTextLayer *s_text_layer;
-
-typedef struct {
-    char *name;
-    char *line;
-    time_t next_bus;
-    time_t second_next_bus;
-} Bus_stop;
-
-static bool began = false, geoloc_done = false, data_received = false;
-static unsigned int n_bus_stops = 0;
-static Bus_stop **bus_stops = NULL;
-
-char *time_s;
+void __assert (bool expression, char *file, int line) {
+    if (!expression) {
+        APP_LOG (APP_LOG_LEVEL_ERROR, "Assert failed at %s:%d", file, line);
+        window_stack_pop_all (false);
+    }
+}
 
 /*
  * Layout
@@ -34,14 +15,11 @@ static void window_time_unload (Window *window) {
     free (time_s);
 }
 
-static uint16_t menu_get_num_sections_callback (MenuLayer *menu_layer,
-                                                void *data) {
+static uint16_t menu_get_num_sections_callback (MenuLayer *menu_layer, void *data) {
     return NUM_MENU_SECTIONS;
 }
 
-static uint16_t menu_get_num_rows_callback (MenuLayer *menu_layer,
-                                            uint16_t section_index,
-                                            void *data) {
+static uint16_t menu_get_num_rows_callback (MenuLayer *menu_layer, uint16_t section_index, void *data) {
     switch (section_index) {
         case 0:
             return n_bus_stops == 0 ? 1 : n_bus_stops;
@@ -50,9 +28,7 @@ static uint16_t menu_get_num_rows_callback (MenuLayer *menu_layer,
     }
 }
 
-static int16_t menu_get_header_height_callback (MenuLayer *menu_layer,
-                                                uint16_t section_index,
-                                                void *data) {
+static int16_t menu_get_header_height_callback (MenuLayer *menu_layer, uint16_t section_index, void *data) {
     return MENU_CELL_BASIC_HEADER_HEIGHT;
 }
 
@@ -69,18 +45,15 @@ static void menu_draw_row_callback (GContext *ctx, const Layer *cell_layer, Menu
     switch (cell_index->section) {
         case 0:
             if (!began) {
-                menu_cell_basic_draw (ctx, cell_layer, "Loading",
-                                      "Waiting for BT connection...", NULL);
+                menu_cell_basic_draw (ctx, cell_layer, "Loading", "Waiting for BT connection...", NULL);
             } else if (!geoloc_done) {
                 menu_cell_basic_draw (ctx, cell_layer, "Loading", "Waiting for localization from the phone...", NULL);
             } else if (!data_received) {
                 menu_cell_basic_draw (ctx, cell_layer, "Loading", "Waiting for data...", NULL);
             } else if (cell_index->row == 0 && n_bus_stops == 0) {
-                menu_cell_basic_draw (ctx, cell_layer, "None", "No bus stops nearby",
-                                      NULL);
+                menu_cell_basic_draw (ctx, cell_layer, "None", "No bus stops nearby", NULL);
             } else {
-                menu_cell_basic_draw (ctx, cell_layer, bus_stops[cell_index->row]->name,
-                                      bus_stops[cell_index->row]->line, NULL);
+                menu_cell_basic_draw (ctx, cell_layer, bus_stops[cell_index->row]->name, bus_stops[cell_index->row]->lines_s, NULL);
             }
             break;
     }
@@ -90,7 +63,7 @@ static void menu_select_callback (MenuLayer *menu_layer, MenuIndex *cell_index, 
     if (n_bus_stops == 0)
         return;
 
-    s_window_time = window_create ();
+    /* s_window_time = window_create ();
 
     window_set_window_handlers (s_window_time, (WindowHandlers){
                                                .load = NULL,
@@ -146,7 +119,7 @@ static void menu_select_callback (MenuLayer *menu_layer, MenuIndex *cell_index, 
     free (time2);
 
     scroll_text_layer_add_to_window (s_text_layer, s_window_time);
-    window_stack_push (s_window_time, true);
+    window_stack_push (s_window_time, true); */
 }
 
 static void createWindow () {
@@ -155,16 +128,9 @@ static void createWindow () {
 
     s_menu_layer = menu_layer_create (bounds);
     menu_layer_set_click_config_onto_window (s_menu_layer, s_window);
-    menu_layer_set_callbacks (
-    s_menu_layer, NULL,
-    (MenuLayerCallbacks){
-    .get_num_sections = menu_get_num_sections_callback,
-    .get_num_rows = menu_get_num_rows_callback,
-    .get_header_height = menu_get_header_height_callback,
-    .draw_header = menu_draw_header_callback,
-    .draw_row = menu_draw_row_callback,
-    .select_click = menu_select_callback,
-    });
+    menu_layer_set_callbacks (s_menu_layer, NULL, (MenuLayerCallbacks){
+                                                  .get_num_sections = menu_get_num_sections_callback, .get_num_rows = menu_get_num_rows_callback, .get_header_height = menu_get_header_height_callback, .draw_header = menu_draw_header_callback, .draw_row = menu_draw_row_callback, .select_click = menu_select_callback,
+                                                  });
     menu_layer_set_click_config_onto_window (s_menu_layer, s_window);
     layer_add_child (window_layer, menu_layer_get_layer (s_menu_layer));
 
@@ -175,10 +141,8 @@ static void createWindow () {
  * App Messages
  */
 
-static void inbox_received_callback (DictionaryIterator *iterator,
-                                     void *context) {
-    APP_LOG (APP_LOG_LEVEL_DEBUG, "Received a message of %lu bytes",
-             (unsigned long)dict_size (iterator));
+static void inbox_received_callback (DictionaryIterator *iterator, void *context) {
+    APP_LOG (APP_LOG_LEVEL_DEBUG, "Received a message of %lu bytes", (unsigned long)dict_size (iterator));
 
     DictionaryIterator *iter;
     Tuple *tuple = dict_read_first (iterator);
@@ -192,8 +156,7 @@ static void inbox_received_callback (DictionaryIterator *iterator,
                         APP_LOG (APP_LOG_LEVEL_DEBUG, "Could not begin message");
                     }
 
-                    if (dict_write_cstring (iter, MESSAGE_KEY_MESSAGE, "GET_STOPS") !=
-                        DICT_OK) {
+                    if (dict_write_cstring (iter, MESSAGE_KEY_MESSAGE, "GET_STOPS") != DICT_OK) {
                         APP_LOG (APP_LOG_LEVEL_DEBUG, "Could not write message");
                     }
 
@@ -208,26 +171,37 @@ static void inbox_received_callback (DictionaryIterator *iterator,
                     data_received = true;
                     menu_layer_reload_data (s_menu_layer);
                 } else {
-                    APP_LOG (APP_LOG_LEVEL_DEBUG, "Error: received unknown message key '%s'",
-                             tuple->value->cstring);
+                    APP_LOG (APP_LOG_LEVEL_DEBUG, "Error: received unknown message key '%s'", tuple->value->cstring);
                 }
 
                 break;
             case MESSAGE_KEY_ADD_STOP: {
-                Tuple *line = dict_find (iterator, MESSAGE_KEY_ADD_STOP_LINE);
-                Tuple *next = dict_find (iterator, MESSAGE_KEY_ADD_STOP_NEXT);
-                Tuple *second_next =
-                dict_find (iterator, MESSAGE_KEY_ADD_STOP_SECOND_NEXT);
+                Tuple *name = dict_find (iterator, MESSAGE_KEY_ADD_STOP_NAME);
+                Tuple *n_lines = dict_find (iterator, MESSAGE_KEY_ADD_STOP_N_LINES);
+                Tuple *lines_s = dict_find (iterator, MESSAGE_KEY_ADD_STOP_LINES_S);
+                assert (name != NULL);
+                assert (n_lines != NULL);
+                assert (lines_s != NULL);
 
                 Bus_stop *stop = malloc (sizeof (Bus_stop));
+                APP_LOG (APP_LOG_LEVEL_DEBUG, "Stop: %x", (unsigned int)stop);
 
-                stop->name = malloc (tuple->length);
-                strcpy (stop->name, tuple->value->cstring);
-                stop->line = malloc (line->length);
-                strcpy (stop->line, line->value->cstring);
+                stop->id = malloc (tuple->length);
+                strcpy (stop->id, tuple->value->cstring);
+                stop->name = malloc (name->length);
+                strcpy (stop->name, name->value->cstring);
+                stop->lines_s = malloc (lines_s->length);
+                strcpy (stop->lines_s, lines_s->value->cstring);
 
-                stop->next_bus = next->value->uint32;
-                stop->second_next_bus = second_next->value->uint32;
+                stop->n_lines = n_lines->value->uint32;
+                APP_LOG (APP_LOG_LEVEL_DEBUG, "n lines: %u", stop->n_lines);
+
+                stop->lines = malloc (sizeof (void *) * stop->n_lines);
+
+                for (unsigned int i = 0; i < stop->n_lines; ++i) {
+                    stop->lines[i] = malloc (sizeof (Bus_line));
+                    stop->lines[i]->loaded = false;
+                }
 
                 n_bus_stops++;
 
@@ -239,9 +213,36 @@ static void inbox_received_callback (DictionaryIterator *iterator,
                 bus_stops[n_bus_stops - 1] = stop;
 
                 menu_layer_reload_data (s_menu_layer);
-            }
 
-            break;
+            } break;
+            case MESSAGE_KEY_ADD_LINE: {
+                Tuple *stop = dict_find (iterator, MESSAGE_KEY_ADD_LINE_STOP);
+                Tuple *next = dict_find (iterator, MESSAGE_KEY_ADD_LINE_NEXT);
+                Tuple *second_next = dict_find (iterator, MESSAGE_KEY_ADD_LINE_SECOND_NEXT);
+                assert (stop != NULL);
+                assert (next != NULL);
+                assert (second_next != NULL);
+
+                for (unsigned int i = 0; i < n_bus_stops; ++i) {
+                    if (strcmp (bus_stops[i]->id, stop->value->cstring) == 0) {
+
+                        // Find what line to load into
+                        int line = 0;
+                        for (unsigned int j = 0; j < bus_stops[i]->n_lines; ++j) {
+                            if (!bus_stops[i]->lines[j]->loaded) {
+                                line = j;
+                            }
+                        }
+
+                        bus_stops[i]->lines[line]->name = malloc (tuple->length);
+                        strcpy (bus_stops[i]->lines[line]->name, tuple->value->cstring);
+                        bus_stops[i]->lines[line]->next_bus = next->value->uint32;
+                        bus_stops[i]->lines[line]->second_next_bus = second_next->value->uint32;
+                        bus_stops[i]->lines[line]->loaded = true;
+                    }
+                }
+            } break;
+
             default:
                 break;
         }
@@ -258,26 +259,24 @@ static void outbox_sent_callback (DictionaryIterator *iterator, void *context) {
     APP_LOG (APP_LOG_LEVEL_DEBUG, "Sent a message!");
 }
 
-static void outbox_failed_callback (DictionaryIterator *iterator,
-                                    AppMessageResult reason,
-                                    void *context) {
+static void outbox_failed_callback (DictionaryIterator *iterator, AppMessageResult reason, void *context) {
     APP_LOG (APP_LOG_LEVEL_DEBUG, "Failed to send a message!");
 }
 
 static void init (void) {
 
     /*
-   * Layout
-   */
+     * Layout
+     */
 
     s_window = window_create ();
     createWindow ();
 
     /*
-   * AppMessages
-   */
+     * AppMessages
+     */
 
-    app_message_open (124, 124);
+    app_message_open (255, 255);
 
     app_message_register_inbox_received (inbox_received_callback);
     app_message_register_inbox_dropped (inbox_dropped_callback);
@@ -293,8 +292,15 @@ static void deinit (void) {
     s_window = NULL;
 
     for (unsigned int i = 0; i < n_bus_stops; ++i) {
+        for (unsigned int j = 0; j < bus_stops[i]->n_lines; ++j) {
+            free (bus_stops[i]->lines[j]->name);
+            free (bus_stops[i]->lines[j]);
+        }
+        free (bus_stops[i]->lines);
+
+        free (bus_stops[i]->id);
         free (bus_stops[i]->name);
-        free (bus_stops[i]->line);
+        free (bus_stops[i]->lines_s);
         free (bus_stops[i]);
     }
     free (bus_stops);

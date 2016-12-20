@@ -15,9 +15,13 @@
     "messageKeys": {
       "MESSAGE": 0,
       "ADD_STOP": 1,
-      "ADD_STOP_LINE": 2,
-      "ADD_STOP_NEXT": 3,
-      "ADD_STOP_SECOND_NEXT": 4
+      "ADD_STOP_NAME": 2,
+      "ADD_STOP_N_LINES": 3,
+      "ADD_STOP_LINES_S": 4,
+      "ADD_LINE": 5,
+      "ADD_LINE_STOP": 6,
+      "ADD_LINE_NEXT": 7,
+      "ADD_LINE_SECOND_NEXT": 8
     },
     "projectType": "native",
     "resources": {

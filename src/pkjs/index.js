@@ -29,6 +29,11 @@ Pebble.addEventListener('appmessage', function(e) {
             try {
                 var json = JSON.parse(text);
 
+                var stops = []
+
+                json['stop_schedules'].forEach(function(stop) {
+                });
+
                 // Compute distance from user for each stop
                 var R = 6371e3;
                 var lat1 = coords.latitude * Math.PI / 180;
@@ -43,37 +48,82 @@ Pebble.addEventListener('appmessage', function(e) {
                     var a = Math.sin(dlat / 2) * Math.sin(dlat / 2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dlon/2) * Math.sin(dlon/2);
                     var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
                     var dist = R * c;
-                    stop['stop_point']['distance'] = dist;
+
+                    if(!(stop['stop_point']['id'] in stops)) {
+                        stops[stop['stop_point']['id']] = {
+                            'lines': [
+                                stop,
+                            ],
+                            'distance': dist,
+                            'name': stop['stop_point']['name'],
+                            'id': stop['stop_point']['id']
+                        };
+                    } else {
+                        stops[stop['stop_point']['id']]['lines'].push(stop);
+                    }
                 });
 
 
                 // Order stops by distance (closest first)
-                var stops = json['stop_schedules'].sort(function(a, b) {
-                    return a['stop_point']['distance'] - b['stop_point']['distance'];
+                stops = stops.sort(function(a, b) {
+                    return a['distance'] - b['distance'];
                 });
+
+
+                Object.size = function(obj) {
+                    var size = 0, key;
+                    for(key in obj) {
+                        if(obj.hasOwnProperty(key)) size++;
+                    }
+                    return size;
+                };
 
 
                 send({
                     "MESSAGE": "DATA_RECEIVED"
                 });
 
-                stops.forEach(function(stop) {
-                    var n_next_busses = stop['date_times'].length;
+                for(var stop in stops) {
+                    stop = stops[stop];
+                    //var n_next_busses = stop['date_times'].length;
                     var next_d = new Date(0), next_d2 = new Date(0);
-                    if(n_next_busses > 0) {
+                    /* if(n_next_busses > 0) {
                         var next_d = iso8601_to_date(stop['date_times'][0]['date_time']);
                         if(n_next_busses > 1)
                             var next_d2 = iso8601_to_date(stop['date_times'][1]['date_time']);
-                    }
+                    } */
                     var stop_formatted = {
-                        'ADD_STOP': stop['stop_point']['name'],
-                        'ADD_STOP_LINE': stop['display_informations']['code'] + ' to ' + stop['display_informations']['direction'],
-                        'ADD_STOP_NEXT': next_d.getTime() / 1000,
-                        'ADD_STOP_SECOND_NEXT': next_d2.getTime() / 1000,
+                        'ADD_STOP': stop['id'],
+                        'ADD_STOP_NAME': stop['name'],
+                        'ADD_STOP_N_LINES': Object.size(stop['lines']),
+                        'ADD_STOP_LINES_S': '',
                     };
 
+                    var first = true;
+                    stop['lines'].forEach(function(line) {
+                        if(first) {
+                            stop_formatted['ADD_STOP_LINES_S'] = line['display_informations']['code'];
+                            first = false;
+                        } else {
+                            stop_formatted['ADD_STOP_LINES_S'] = stop_formatted['ADD_STOP_LINES_S'] + ', ' + line['display_informations']['code'];
+                        }
+
+                    });
+
                     send(stop_formatted);
-                });
+
+                    // We send the lines separately from the stop because nested json objects are hard in C (and I couldn't find examples online)
+                    stop['lines'].forEach(function(line) {
+                        var line_formatted = {
+                            'ADD_LINE': line['display_informations']['code'] + ' to ' + line['display_informations']['direction'],
+                            'ADD_LINE_STOP': stop['id'],
+                            'ADD_LINE_NEXT': next_d.getTime() / 1000,
+                            'ADD_LINE_SECOND_NEXT': next_d2.getTime() / 1000,
+                        };
+
+                        send(line_formatted);
+                    });
+                }
 
             } catch(err) {
                 console.log('Error parsing JSON response: ' + err);
