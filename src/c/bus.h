@@ -4,7 +4,6 @@
 #include <pebble.h>
 
 #include "comms.h"
-#include "ui.h"
 
 typedef struct {
     bool loaded;
@@ -25,5 +24,7 @@ typedef struct {
 
 extern unsigned int n_bus_stops;
 extern Bus_stop **bus_stops;
+
+#include "main_window.h"
 
 #endif

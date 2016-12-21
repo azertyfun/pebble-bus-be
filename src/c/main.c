@@ -8,12 +8,12 @@ void __assert (bool expression, char *file, int line) {
 }
 
 static void init (void) {
-    ui_init ();
+    main_window_init ();
     comms_init ();
 }
 
 static void deinit (void) {
-    ui_deinit ();
+    main_window_deinit ();
     comms_deinit ();
 }
 

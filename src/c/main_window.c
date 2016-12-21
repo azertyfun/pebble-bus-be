@@ -1,14 +1,7 @@
-#include "ui.h"
+#include "main_window.h"
 
-static Window *s_window, *s_window_time;
+static Window *s_window;
 static MenuLayer *s_menu_layer;
-static ScrollTextLayer *s_text_layer;
-static char *time_s;
-
-
-static void window_time_unload (Window *window) {
-    free (time_s);
-}
 
 static uint16_t menu_get_num_sections_callback (MenuLayer *menu_layer, void *data) {
     return NUM_MENU_SECTIONS;
@@ -58,66 +51,10 @@ static void menu_select_callback (MenuLayer *menu_layer, MenuIndex *cell_index, 
     if (n_bus_stops == 0)
         return;
 
-    /* s_window_time = window_create ();
-
-    window_set_window_handlers (s_window_time, (WindowHandlers){
-                                               .load = NULL,
-                                               .appear = NULL,
-                                               .disappear = NULL,
-                                               .unload = window_time_unload,
-                                               });
-
-    s_text_layer = scroll_text_layer_create_fullscreen (s_window_time);
-    scroll_text_layer_set_system_font (s_text_layer, FONT_KEY_GOTHIC_18);
-
-    char *time1 = malloc (8);
-    char *time2 = malloc (8);
-    char *time_left = malloc (16);
-    if (bus_stops[cell_index->row]->next_bus != 0) {
-        strftime (time1, 7, "%H:%M",
-                  localtime (&bus_stops[cell_index->row]->next_bus));
-
-        int t = bus_stops[cell_index->row]->next_bus - time (NULL);
-        APP_LOG (APP_LOG_LEVEL_DEBUG, "%d (%u - %u)", t,
-                 (unsigned int)bus_stops[cell_index->row]->next_bus,
-                 (unsigned int)time (NULL));
-        snprintf (time_left, 16, "%02d:%02d", t / 60, t % 60);
-
-        if (bus_stops[cell_index->row]->second_next_bus != 0) {
-            strftime (time2, 7, "%H:%M",
-                      localtime (&bus_stops[cell_index->row]->second_next_bus));
-        } else {
-            strcpy (time2, "Unknown");
-        }
-    } else {
-        strcpy (time1, "Unknown");
-        strcpy (time_left, "--");
-    }
-
-    time_s = malloc (256);
-    strcpy (time_s, "Stop: ");
-    strcat (time_s, bus_stops[cell_index->row]->name);
-    strcat (time_s, "\nLine: ");
-    strcat (time_s, bus_stops[cell_index->row]->line);
-    strcat (time_s, "\n\n");
-    strcat (time_s, "Next: ");
-    strcat (time_s, time1);
-    strcat (time_s, ", ");
-    strcat (time_s, time2);
-    strcat (time_s, " (");
-    strcat (time_s, time_left);
-    strcat (time_s, " remaining).");
-    scroll_text_layer_set_text (s_text_layer, time_s);
-
-    free (time_left);
-    free (time1);
-    free (time2);
-
-    scroll_text_layer_add_to_window (s_text_layer, s_window_time);
-    window_stack_push (s_window_time, true); */
+    list_selection_window_init(bus_stops[cell_index->row]);
 }
 
-void ui_init () {
+void main_window_init () {
     s_window = window_create ();
 
     Layer *window_layer = window_get_root_layer (s_window);
@@ -134,7 +71,7 @@ void ui_init () {
     window_stack_push (s_window, true);
 }
 
-void ui_deinit () {
+void main_window_deinit () {
     menu_layer_destroy (s_menu_layer);
 
     window_destroy (s_window);

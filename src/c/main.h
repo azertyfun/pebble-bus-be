@@ -5,7 +5,7 @@
 
 #include "bus.h"
 #include "comms.h"
-#include "ui.h"
+#include "main_window.h"
 
 #define assert(x)                           \
     do {                                    \

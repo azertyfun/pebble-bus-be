@@ -31,9 +31,6 @@ Pebble.addEventListener('appmessage', function(e) {
 
                 var stops = []
 
-                json['stop_schedules'].forEach(function(stop) {
-                });
-
                 // Compute distance from user for each stop
                 var R = 6371e3;
                 var lat1 = coords.latitude * Math.PI / 180;
@@ -85,13 +82,7 @@ Pebble.addEventListener('appmessage', function(e) {
 
                 for(var stop in stops) {
                     stop = stops[stop];
-                    //var n_next_busses = stop['date_times'].length;
-                    var next_d = new Date(0), next_d2 = new Date(0);
-                    /* if(n_next_busses > 0) {
-                        var next_d = iso8601_to_date(stop['date_times'][0]['date_time']);
-                        if(n_next_busses > 1)
-                            var next_d2 = iso8601_to_date(stop['date_times'][1]['date_time']);
-                    } */
+
                     var stop_formatted = {
                         'ADD_STOP': stop['id'],
                         'ADD_STOP_NAME': stop['name'],
@@ -114,6 +105,15 @@ Pebble.addEventListener('appmessage', function(e) {
 
                     // We send the lines separately from the stop because nested json objects are hard in C (and I couldn't find examples online)
                     stop['lines'].forEach(function(line) {
+                        var next_d = new Date(0), next_d2 = new Date(0);
+
+                        var n_next_busses = line['date_times'].length;
+                        if(n_next_busses > 0) {
+                            var next_d = iso8601_to_date(line['date_times'][0]['date_time']);
+                            if(n_next_busses > 1)
+                                var next_d2 = iso8601_to_date(line['date_times'][1]['date_time']);
+                        }
+
                         var line_formatted = {
                             'ADD_LINE': line['display_informations']['code'] + ' to ' + line['display_informations']['direction'],
                             'ADD_LINE_STOP': stop['id'],
